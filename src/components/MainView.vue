@@ -43,7 +43,6 @@ const dateText = computed(() =>
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   }).format(now.value),
 );
 
@@ -57,30 +56,38 @@ function isNext(key: PrayerKey): boolean {
 }
 
 const calculated = computed(() => day.value.source !== "diyanet" || next.value.source !== "diyanet");
-const canSpeak = speechAvailable();
-const spoken = ref(false);
+const canSpeak = computed(() => settings.speech && speechAvailable());
+const speaking = ref(false);
 function readAloud() {
-  spoken.value = speak(speechText(next.value));
-  window.setTimeout(() => (spoken.value = false), 4000);
+  if (!canSpeak.value) return;
+  speaking.value = speak(speechText(next.value));
+  window.setTimeout(() => (speaking.value = false), 3000);
 }
 </script>
 
 <template>
-  <main class="app" aria-live="polite">
+  <main class="app">
     <header class="head">
-      <p class="date">{{ dateText }}</p>
-      <p v-if="day.hijri" class="hijri">{{ day.hijri }}</p>
-      <p class="place" aria-label="Konum">{{ location.name }}</p>
+      <div>
+        <p class="date">{{ dateText }}</p>
+        <p class="place">{{ location.name }}</p>
+      </div>
+      <button class="gear" type="button" aria-label="Ayarlar" @click="$emit('open-settings')">⚙︎</button>
     </header>
 
-    <section class="hero" aria-labelledby="next-label">
-      <p id="next-label" class="label">Bir sonraki vakit</p>
-      <p class="name">{{ PRAYER_LABEL[next.key] }}</p>
-      <p class="time" aria-label="Saat">{{ next.time }}</p>
-      <p v-if="PRAYER_HINT[next.key]" class="hint">{{ PRAYER_HINT[next.key] }}</p>
-      <p class="remaining">Kalan: {{ formatRemaining(next.remainingMinutes) }}</p>
-      <p v-if="next.date !== today" class="hint">Yarın</p>
-    </section>
+    <component
+      :is="canSpeak ? 'button' : 'section'"
+      class="hero"
+      :type="canSpeak ? 'button' : undefined"
+      :aria-label="canSpeak ? 'Bir sonraki vakti sesli oku' : undefined"
+      @click="readAloud"
+    >
+      <span class="label">Bir sonraki vakit<template v-if="next.date !== today"> · yarın</template></span>
+      <span class="name">{{ PRAYER_LABEL[next.key] }}</span>
+      <span class="time">{{ next.time }}</span>
+      <span class="remaining">{{ PRAYER_HINT[next.key] ? PRAYER_HINT[next.key] + " · " : "" }}Kalan {{ formatRemaining(next.remainingMinutes) }}</span>
+      <span v-if="canSpeak" class="speak-hint">{{ speaking ? "Okunuyor…" : "🔊 Dokun, sesli oku" }}</span>
+    </component>
 
     <ul class="list" aria-label="Bugünkü vakitler">
       <li v-for="key in PRAYER_ORDER" :key="key" :class="{ passed: isPassed(key), next: isNext(key) }">
@@ -89,14 +96,6 @@ function readAloud() {
       </li>
     </ul>
 
-    <p v-if="calculated" class="notice" role="status">
-      Dikkat: Bu gün için resmi Diyanet tablosu yok. Vakitler cihazda hesaplandı ve birkaç dakika farklı olabilir.
-    </p>
-
-    <button v-if="settings.speech && canSpeak" class="big-btn" type="button" @click="readAloud">
-      {{ spoken ? "Okunuyor…" : "🔊 Sesli oku" }}
-    </button>
-
-    <button class="settings-link" type="button" @click="$emit('open-settings')">⚙︎ Ayarlar</button>
+    <p v-if="calculated" class="notice" role="status">⚠︎ Hesaplanmış vakitler (resmi Diyanet tablosu yok)</p>
   </main>
 </template>
