@@ -125,6 +125,12 @@ p, h1, h2 { margin: 0; }
 
 html, body {
   margin: 0;
+  /* Kein Doppeltipp-Zoom, kein Pinch-Zoom, keine Textauswahl, kein Langdruck-Menü */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font);
@@ -145,6 +151,7 @@ body {
 }
 
 button {
+  touch-action: manipulation;
   font: inherit;
   color: inherit;
   cursor: pointer;
