@@ -16,7 +16,7 @@ const KEY = "namaz.settings.v1";
 
 const defaults: Settings = {
   locationId: HOME_LOCATION_ID,
-  theme: "light",
+  theme: "dark",
   highContrast: false,
   fontScale: 2,
   speech: true,

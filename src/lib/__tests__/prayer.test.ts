@@ -114,7 +114,7 @@ describe("Einstellungen", () => {
   it("ignoriert kaputte Werte", () => {
     const storage = { getItem: () => '{"theme":"neon","fontScale":99}', setItem: () => {} } as unknown as Storage;
     const s = loadSettings(storage);
-    expect(s.theme).toBe("light");
+    expect(s.theme).toBe("dark");
     expect(s.fontScale).toBe(2);
   });
 });

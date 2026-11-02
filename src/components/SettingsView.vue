@@ -11,8 +11,8 @@ const meta = computed(() => diyanetMeta(findLocation(settings.locationId)));
 const canSpeak = speechAvailable();
 
 const themes: Array<{ value: Theme; label: string }> = [
-  { value: "light", label: "Açık (beyaz)" },
-  { value: "dark", label: "Koyu (siyah)" },
+  { value: "dark", label: "Koyu yeşil (alışık)" },
+  { value: "light", label: "Açık (krem)" },
   { value: "system", label: "Telefon ayarına göre" },
 ];
 const fonts: Array<{ value: FontScale; label: string }> = [

@@ -6,7 +6,7 @@ import { currentPhase } from "../lib/phase";
 import { formatRemaining, nextPrayer } from "../lib/prayer";
 import { settings } from "../lib/settings";
 import { speak, speechAvailable, speechText } from "../lib/speech";
-import { addDays, isoDateInZone } from "../lib/tz";
+import { isoDateInZone } from "../lib/tz";
 import { PRAYER_LABEL, PRAYER_ORDER, type PrayerKey } from "../lib/types";
 
 defineEmits<{ (e: "open-settings"): void }>();
@@ -35,7 +35,6 @@ onUnmounted(() => {
 const location = computed(() => findLocation(settings.locationId));
 const today = computed(() => isoDateInZone(now.value, location.value.tz));
 const day = computed(() => getDayTimes(location.value, today.value));
-const imsakTomorrow = computed(() => getDayTimes(location.value, addDays(today.value, 1)).times.imsak);
 const phase = computed(() => currentPhase(location.value, now.value, getDayTimes));
 const next = computed(() => nextPrayer(location.value, now.value, getDayTimes));
 
@@ -43,21 +42,29 @@ const clock = computed(() =>
   new Intl.DateTimeFormat("tr-TR", { timeZone: location.value.tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now.value),
 );
 const dateText = computed(() =>
-  new Intl.DateTimeFormat("tr-TR", { timeZone: location.value.tz, weekday: "long", day: "numeric", month: "long" }).format(now.value),
+  new Intl.DateTimeFormat("tr-TR", { timeZone: location.value.tz, day: "numeric", month: "long", weekday: "long" }).format(now.value),
 );
 
-/** Farbe der großen Fläche: pro Gebet fest, Kerahat rot, freie Zeit neutral. */
-const heroTone = computed(() => {
-  const p = phase.value;
-  if (p.kind === "kerahat") return "kerahat";
-  if (p.kind === "free") return "free";
-  return p.prayer;
+/** Countdown-Ziffern: Stunden und Minuten bis Phasenende */
+const countdown = computed(() => {
+  const m = phase.value.kind === "free" ? next.value.remainingMinutes : phase.value.remainingMinutes;
+  return { h: String(Math.floor(m / 60)).padStart(2, "0"), m: String(m % 60).padStart(2, "0") };
 });
 
-/** Welche Zeile ist "aktiv" (laufendes Fenster)? */
-function rowState(key: PrayerKey): "passed" | "active" | "upcoming" {
+const panelTitle = computed(() => {
   const p = phase.value;
-  // Aktiv nur, wenn das laufende Fenster heute begonnen hat (Yatsı von gestern zählt nicht).
+  if (p.kind === "kerahat") return "Kerahat · namaz kılınmaz";
+  if (p.kind === "free") return `${PRAYER_LABEL[p.nextPrayer]} vaktine`;
+  return `${p.title} · vaktin çıkmasına`;
+});
+const panelFoot = computed(() => {
+  const p = phase.value;
+  if (p.kind === "prayer") return `Bitiş ${p.endTime}`;
+  return `${PRAYER_LABEL[p.nextPrayer]} ${p.nextTime}`;
+});
+
+function tileState(key: PrayerKey): "passed" | "active" | "upcoming" {
+  const p = phase.value;
   if (p.kind === "prayer" && p.prayer === key && isoDateInZone(p.start, location.value.tz) === today.value) return "active";
   const idxNext = next.value.date === today.value ? PRAYER_ORDER.indexOf(next.value.key) : PRAYER_ORDER.length;
   return PRAYER_ORDER.indexOf(key) < idxNext ? "passed" : "upcoming";
@@ -71,7 +78,7 @@ function readAloud() {
   const p = phase.value;
   const text =
     p.kind === "prayer"
-      ? `${p.title} vakti. Bitiş saat ${p.endTime.replace(":", " ")}. Kalan ${formatRemaining(p.remainingMinutes)}.`
+      ? `${p.title} vakti. Vaktin çıkmasına ${formatRemaining(p.remainingMinutes)}. Bitiş saat ${p.endTime.replace(":", " ")}.`
       : p.kind === "kerahat"
         ? `Kerahat vakti, namaz kılınmaz. ${PRAYER_LABEL[p.nextPrayer]} saat ${p.nextTime.replace(":", " ")}.`
         : speechText(next.value);
@@ -81,11 +88,11 @@ function readAloud() {
 </script>
 
 <template>
-  <main class="app" :data-tone="heroTone">
+  <main class="app" :data-phase="phase.kind" :class="{ urgent: phase.urgent }">
     <header class="head">
       <div class="head-left">
-        <p class="date">{{ dateText }}</p>
         <p class="place">{{ location.name.split(",")[0] }}</p>
+        <p class="date">{{ dateText }}</p>
       </div>
       <p class="clock" aria-label="Şu an saat">{{ clock }}</p>
       <button class="gear" type="button" aria-label="Ayarlar" @click="$emit('open-settings')">⚙︎</button>
@@ -93,37 +100,24 @@ function readAloud() {
 
     <component
       :is="canSpeak ? 'button' : 'section'"
-      class="hero"
-      :class="{ urgent: phase.urgent }"
+      class="panel"
       :type="canSpeak ? 'button' : undefined"
       :aria-label="canSpeak ? 'Sesli oku' : undefined"
       @click="readAloud"
     >
-      <template v-if="phase.kind === 'prayer'">
-        <span class="label">Şu an</span>
-        <span class="name">{{ phase.title }}</span>
-        <span class="time">{{ phase.endTime }}</span>
-        <span class="sub">Bitiş · Kalan {{ formatRemaining(phase.remainingMinutes) }}</span>
-      </template>
-      <template v-else-if="phase.kind === 'kerahat'">
-        <span class="label">Kerahat vakti</span>
-        <span class="name">Namaz kılınmaz</span>
-        <span class="time">{{ phase.nextTime }}</span>
-        <span class="sub">{{ PRAYER_LABEL[phase.nextPrayer] }} · {{ formatRemaining(phase.remainingMinutes) }} sonra</span>
-      </template>
-      <template v-else>
-        <span class="label">Bir sonraki vakit</span>
-        <span class="name">{{ PRAYER_LABEL[phase.nextPrayer] }}</span>
-        <span class="time">{{ phase.nextTime }}</span>
-        <span class="sub">Kalan {{ formatRemaining(next.remainingMinutes) }}</span>
-      </template>
+      <span class="panel-title">{{ panelTitle }}</span>
+      <span class="flip" aria-label="Kalan süre">
+        <span class="digits"><span class="d">{{ countdown.h[0] }}</span><span class="d">{{ countdown.h[1] }}</span><span class="unit">Saat</span></span>
+        <span class="colon">:</span>
+        <span class="digits"><span class="d">{{ countdown.m[0] }}</span><span class="d">{{ countdown.m[1] }}</span><span class="unit">Dakika</span></span>
+      </span>
+      <span class="panel-foot">{{ panelFoot }}</span>
       <span class="bar" aria-hidden="true"><span class="fill" :style="{ width: Math.round(phase.progress * 100) + '%' }"></span></span>
     </component>
 
-    <ul class="list" aria-label="Bugünkü vakitler">
-      <li v-for="key in PRAYER_ORDER" :key="key" :class="rowState(key)" :data-prayer="key">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="name">{{ PRAYER_LABEL[key] }}<span v-if="rowState(key) === 'passed'" class="sr-only"> (geçti)</span></span>
+    <ul class="grid" aria-label="Bugünkü vakitler">
+      <li v-for="key in PRAYER_ORDER" :key="key" :class="tileState(key)">
+        <span class="name">{{ PRAYER_LABEL[key] }}<span v-if="tileState(key) === 'passed'" class="sr-only"> (geçti)</span></span>
         <span class="time">{{ day.times[key] }}</span>
       </li>
     </ul>
