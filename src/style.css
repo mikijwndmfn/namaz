@@ -15,6 +15,15 @@
   --row-next-bg: #dbe8f7;
   --row-next-fg: #0b2a50;
   --warn: #9a3b00;
+  /* Feste Farbe pro Gebet (hell) */
+  --c-imsak: #1f3a8a;
+  --c-ogle: #a35a00;
+  --c-ikindi: #b4530a;
+  --c-aksam: #8b1e3f;
+  --c-yatsi: #3b2a7a;
+  --c-free: #3f4a5a;
+  --c-kerahat: #b00020;
+  --c-urgent: #d97706;
   --btn-bg: #0a0a0a;
   --btn-fg: #ffffff;
   --focus: #ff9900;
@@ -27,9 +36,9 @@
   /* 1vh der nutzbaren Höhe; alle Hauptgrößen hängen daran, damit alles auf eine Seite passt */
   --vh: 1dvh;
   --gap: calc(var(--vh) * 1.4);
-  --fs-small: min(calc(1.1rem * var(--scale)), calc(var(--vh) * 2.4));
-  --fs-base: min(calc(1.45rem * var(--scale)), calc(var(--vh) * 3.1));
-  --fs-list: min(calc(2.3rem * var(--scale)), calc(var(--vh) * 4.8), 10vw);
+  --fs-small: min(calc(1.1rem * var(--scale)), calc(var(--vh) * 2.4), 4.2vw);
+  --fs-base: min(calc(1.45rem * var(--scale)), calc(var(--vh) * 3.1), 5.6vw);
+  --fs-list: min(calc(2.3rem * var(--scale)), calc(var(--vh) * 4.8), 8.6vw);
   --fs-hero-label: min(calc(1.15rem * var(--scale)), calc(var(--vh) * 2.4));
   --fs-hero-name: min(calc(2.9rem * var(--scale)), calc(var(--vh) * 6), 13vw);
   --fs-hero-time: min(calc(6.5rem * var(--scale)), calc(var(--vh) * 15), 27vw);
@@ -49,6 +58,14 @@
   --row-next-bg: #2a2300;
   --row-next-fg: #ffffff;
   --warn: #ffb14d;
+  --c-imsak: #2f52c7;
+  --c-ogle: #c77400;
+  --c-ikindi: #d4631a;
+  --c-aksam: #b02a55;
+  --c-yatsi: #5a3fb3;
+  --c-free: #3a4656;
+  --c-kerahat: #d6102e;
+  --c-urgent: #f59e0b;
   --btn-bg: #ffffff;
   --btn-fg: #000000;
 }
@@ -117,6 +134,16 @@ button {
 }
 
 /* ---------- Hauptansicht (eine Seite, kein Scrollen) ---------- */
+.app[data-tone="imsak"]   { --accent-bg: var(--c-imsak); }
+.app[data-tone="ogle"]    { --accent-bg: var(--c-ogle); }
+.app[data-tone="ikindi"]  { --accent-bg: var(--c-ikindi); }
+.app[data-tone="aksam"]   { --accent-bg: var(--c-aksam); }
+.app[data-tone="yatsi"]   { --accent-bg: var(--c-yatsi); }
+.app[data-tone="free"]    { --accent-bg: var(--c-free); }
+.app[data-tone="kerahat"] { --accent-bg: var(--c-kerahat); }
+.app { --accent-fg: #ffffff; }
+:root[data-contrast="high"] .app { --accent-bg: var(--fg); --accent-fg: var(--bg); }
+
 .app {
   height: 100dvh;
   max-width: 720px;
@@ -136,17 +163,30 @@ body:has(.app) { padding: 0; }
   align-items: center;
   gap: var(--space-1);
 }
+.head-left { min-width: 0; flex: 1 1 auto; }
 .head .date {
   font-size: var(--fs-small);
   font-weight: 700;
   color: var(--muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.head .hijri { font-weight: 600; }
+.head .clock {
+  flex: 0 0 auto;
+  font-size: var(--fs-list);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-text);
+  letter-spacing: -0.02em;
 }
 .head .place {
   font-size: var(--fs-base);
   font-weight: 800;
-  color: var(--accent-text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gear {
   flex: 0 0 auto;
@@ -197,16 +237,29 @@ body:has(.app) { padding: 0; }
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
 }
-.hero .remaining {
+.hero .sub {
   font-size: var(--fs-base);
   font-weight: 700;
-  margin-top: calc(var(--vh) * 0.4);
+  margin-top: calc(var(--vh) * 0.3);
 }
-.hero .speak-hint {
-  font-size: var(--fs-small);
-  font-weight: 600;
-  opacity: 0.85;
+.hero .bar {
+  width: 100%;
+  height: calc(var(--vh) * 1.6);
+  margin-top: calc(var(--vh) * 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  overflow: hidden;
 }
+.hero .fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-fg);
+  border-radius: 999px;
+}
+.hero.urgent { outline: 6px solid var(--c-urgent); outline-offset: -6px; }
+.hero.urgent .sub { color: #ffe9b3; }
+:root[data-contrast="high"] .hero .bar { background: rgba(128,128,128,0.5); }
+:root[data-contrast="high"] .hero.urgent { outline-color: var(--accent-fg); }
 
 .list {
   flex: 1 1 auto;
@@ -233,14 +286,31 @@ body:has(.app) { padding: 0; }
   font-variant-numeric: tabular-nums;
 }
 .list li + li { margin-top: calc(var(--vh) * 0.5); }
-.list li.passed { color: var(--muted); }
-.list li.passed .name::after { content: " ✓"; font-weight: 400; }
-.list li.next {
-  background: var(--row-next-bg);
-  color: var(--row-next-fg);
-  box-shadow: inset 10px 0 0 var(--accent-bg);
+.list .dot {
+  flex: 0 0 auto;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--row-color, var(--line));
+  margin-right: 0.35em;
 }
-.list .name { white-space: nowrap; }
+.list li[data-prayer="imsak"]  { --row-color: var(--c-imsak); }
+.list li[data-prayer="gunes"]  { --row-color: var(--c-ogle); opacity: 0.85; }
+.list li[data-prayer="ogle"]   { --row-color: var(--c-ogle); }
+.list li[data-prayer="ikindi"] { --row-color: var(--c-ikindi); }
+.list li[data-prayer="aksam"]  { --row-color: var(--c-aksam); }
+.list li[data-prayer="yatsi"]  { --row-color: var(--c-yatsi); }
+.list li.passed { color: var(--muted); }
+.list li.passed .dot { background: var(--line); }
+.list li.passed .name::after { content: " ✓"; font-weight: 400; }
+.list li.active {
+  background: var(--row-color);
+  color: #fff;
+}
+.list li.active .dot { background: #fff; }
+:root[data-contrast="high"] .list li.active { background: var(--fg); color: var(--bg); }
+:root[data-contrast="high"] .list .dot { background: var(--fg); }
+.list .name { white-space: nowrap; flex: 1 1 auto; }
 .list .time { font-weight: 900; }
 
 .notice {

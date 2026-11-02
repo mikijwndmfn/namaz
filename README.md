@@ -10,6 +10,21 @@ Private Gebetszeiten-App mit sehr großer Schrift für eine Nutzerin mit Makulad
 - Einstellungen (über den Button "Ayarlar" ganz unten): Standort, drei Schriftgrößen, Hell/Dunkel/Automatisch, Hochkontrast, Vorlesefunktion (Web Speech API, Türkisch), Infos zur Datenquelle.
 - Keine Standortabfrage, kein Internet nötig, keine Konten, kein Tracking. Nichts verlässt das Telefon.
 
+## Hauptansicht im Detail
+
+Die große Fläche zeigt nicht die nächste Startzeit, sondern **das laufende Zeitfenster**:
+
+| Phase | Fläche | Beispiel |
+|---|---|---|
+| Gebetsfenster läuft (Sabah, Öğle, İkindi, Akşam, Yatsı) | Farbe des Gebets, Endzeit groß, Restzeit, Fortschrittsbalken | "ŞU AN İKİNDİ · 16:14 · Bitiş, Kalan 24 dakika" |
+| Restzeit unter 30 Minuten | zusätzlich orangefarbener Rahmen | |
+| Kerahat (45 Min. nach Güneş, 10 Min. vor Öğle, 45 Min. vor Akşam) | rot, "Namaz kılınmaz", nächste Gebetszeit | |
+| Freie Zeit (nach Kerahat bis Öğle) | grau, nächstes Gebet mit Restzeit | |
+
+Jedes Gebet hat eine feste Farbe (İmsak blau, Öğle ocker, İkindi orange, Akşam weinrot, Yatsı violett), sowohl auf der Fläche als auch als Punkt in der Liste. Die laufende Zeile ist in derselben Farbe hinterlegt. Oben rechts läuft die aktuelle Uhrzeit mit. Ein Tipp auf die Fläche liest die Phase auf Türkisch vor.
+
+Die Kerahat-Minuten sind in `src/lib/phase.ts` (`KERAHAT`) einstellbar.
+
 ## Entscheidungen (und warum)
 
 | Thema | Entscheidung |
@@ -53,7 +68,7 @@ Hinweis: Stand 01.11.2026 reichen die Tabellen bis 31.12.2027, mit einer Lücke 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 20 Tests (Zeitzonen, Mitternacht, Jahreswechsel, DST, Fallback, Einstellungen, Vorlesen)
+npm test           # 28 Tests (Zeitzonen, Mitternacht, Jahreswechsel, DST, Fallback, Einstellungen, Vorlesen)
 npm run build      # Typecheck + Produktionsbuild nach dist/
 npm run preview    # dist/ lokal ansehen
 ```
