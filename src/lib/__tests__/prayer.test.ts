@@ -130,3 +130,16 @@ describe("Vorlesen", () => {
     expect(speechText(n)).toBe("Bir sonraki vakit İkindi. Saat on dört yirmi sekiz.");
   });
 });
+
+describe("Tabellenabdeckung", () => {
+  it("deckt heute und die nächsten 60 Tage lückenlos für alle Standorte ab", () => {
+    for (const id of ["nuernberg", "fuerth", "istanbul"]) {
+      const loc = findLocation(id);
+      let d = isoDateInZone(new Date(), loc.tz);
+      for (let i = 0; i < 60; i++) {
+        expect(fromDiyanet(loc, d), `${id} ${d}`).not.toBeNull();
+        d = addDays(d, 1);
+      }
+    }
+  });
+});

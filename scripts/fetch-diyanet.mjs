@@ -1,7 +1,7 @@
 // Lädt die offiziellen Diyanet-Jahrestabellen (namazvakitleri.diyanet.gov.tr)
 // für feste Standorte und schreibt sie als JSON nach src/data/diyanet/.
 // Einmal im Jahr ausführen: node scripts/fetch-diyanet.mjs
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
 
 const LOCATIONS = [
   { id: "nuernberg", diyanetId: 11024, slug: "nurnberg-prayer-times" },
@@ -46,8 +46,20 @@ for (const loc of LOCATIONS) {
   const url = `https://namazvakitleri.diyanet.gov.tr/en-US/${loc.diyanetId}/${loc.slug}`;
   const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (private prayer-times app)" } });
   if (!res.ok) throw new Error(`${loc.id}: HTTP ${res.status}`);
-  const days = parseYearly(await res.text());
-  if (days.length < 300) throw new Error(`${loc.id}: nur ${days.length} Tage gefunden`);
+  const fetched = parseYearly(await res.text());
+  if (fetched.length < 300) throw new Error(`${loc.id}: nur ${fetched.length} Tage gefunden`);
+
+  // Mit vorhandener Tabelle zusammenführen: Abdeckung wächst nur, neue Werte gewinnen.
+  const file = new URL(`../src/data/diyanet/${loc.id}.json`, import.meta.url);
+  const merged = new Map();
+  try {
+    const old = JSON.parse(await readFile(file, "utf8"));
+    for (const d of old.days ?? []) merged.set(d.date, d);
+  } catch { /* noch keine Datei */ }
+  for (const d of fetched) merged.set(d.date, d);
+  // Nur die letzten 2 Jahre behalten, damit die App nicht unnötig wächst
+  const cutoff = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+  const days = [...merged.values()].filter((d) => d.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date));
   const out = {
     source: "diyanet",
     sourceUrl: url,
@@ -57,6 +69,6 @@ for (const loc of LOCATIONS) {
     to: days[days.length - 1].date,
     days,
   };
-  await writeFile(new URL(`../src/data/diyanet/${loc.id}.json`, import.meta.url), JSON.stringify(out));
-  console.log(`${loc.id}: ${days.length} Tage, ${out.from} bis ${out.to}`);
+  await writeFile(file, JSON.stringify(out));
+  console.log(`${loc.id}: ${fetched.length} geladen, ${days.length} gesamt, ${out.from} bis ${out.to}`);
 }
